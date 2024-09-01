@@ -59,9 +59,17 @@ function App() {
   };
 
   const fetchPageInsights = (pageId, pageAccessToken) => {
+    if (!pageId || !pageAccessToken) return; // Ensure valid inputs
+
     const metrics = ["page_fans", "page_engaged_users", "page_impressions_unique", "page_reactions_by_type_total"];
-    const sinceTimestamp = since ? Math.floor(new Date(since).getTime() / 1000) : null;
-    const untilTimestamp = until ? Math.floor(new Date(until).getTime() / 1000) : null;
+    
+    // Use default dates if not provided
+    const today = new Date();
+    const defaultUntil = new Date(today);
+    defaultUntil.setDate(today.getDate() + 1); // Tomorrow's date
+
+    const sinceTimestamp = since ? Math.floor(new Date(since).getTime() / 1000) : Math.floor(today.getTime() / 1000);
+    const untilTimestamp = until ? Math.floor(new Date(until).getTime() / 1000) : Math.floor(defaultUntil.getTime() / 1000);
 
     const requests = metrics.map((metric) => {
       const url = new URL(`https://graph.facebook.com/${pageId}/insights/${metric}`);
@@ -90,9 +98,15 @@ function App() {
     const page = pages.find((p) => p.id === pageId);
     if (page) {
       setSelectedPage(page);
-      fetchPageInsights(pageId, page.access_token);
     }
   };
+
+  // UseEffect to fetch insights when selectedPage, since, or until changes
+  useEffect(() => {
+    if (selectedPage) {
+      fetchPageInsights(selectedPage.id, selectedPage.access_token);
+    }
+  }, [selectedPage, since, until]);
 
   const getInsightValue = (insights, key) => {
     return insights?.[key]?.[0]?.values?.[0]?.value ?? "N/A";
